@@ -154,6 +154,13 @@
       <input id="telefono" type="tel" placeholder="Ej: 6671234567">
       <p class="phone-hint">📲 Este número recibirá el mensaje de WhatsApp automáticamente</p>
     </div>
+    <div class="field">
+      <label>¿Cliente nuevo?</label>
+      <div class="badge-row">
+        <span class="badge" onclick="selectBadge(this,'clienteNuevo')">Sí</span>
+        <span class="badge" onclick="selectBadge(this,'clienteNuevo')">No</span>
+      </div>
+    </div>
   </div>
 
   <p class="section-title">Productos</p>
@@ -177,6 +184,20 @@
       <div class="field"><label>Ciudad</label><input id="ciudad" type="text" placeholder="Ej: Culiacán"></div>
     </div>
     <div class="field"><label>Referencias</label><input id="referencias" type="text" placeholder="Ej: Casa beige, portón negro"></div>
+  </div>
+
+  <p class="section-title">Sucursal</p>
+  <div class="card">
+    <div class="field">
+      <label>Venta realizada por</label>
+      <select id="vendedor" onchange="actualizarPreview()">
+        <option value="">— Seleccionar —</option>
+        <option>DC SPA</option>
+        <option>Rafael</option>
+        <option>Tomás</option>
+        <option>Amairany</option>
+      </select>
+    </div>
   </div>
 
   <p class="section-title">Detalle del servicio</p>
@@ -277,9 +298,10 @@
   /* ══════════════════════════════════════════════
      ESTADO GLOBAL
   ══════════════════════════════════════════════ */
-  let sucursal  = '';
-  let tipoEnvio = '';
-  let prioridad = 'Normal';
+  let sucursal     = '';
+  let tipoEnvio  = '';
+  let prioridad  = 'Normal';
+  let clienteNuevo = '';
 
   /* ══════════════════════════════════════════════
      TOAST
@@ -329,7 +351,9 @@
         const total = tipoEnvio === 'Domicilio' ? m + COSTO_ENVIO : m;
         return `$${total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`;
       })(),
-      notas:     val('notas') || '—'
+      notas:     val('notas') || '—',
+      vendedor:     document.getElementById('vendedor') ? document.getElementById('vendedor').value || '—' : '—',
+      clienteNuevo: clienteNuevo || '—'
     };
 
     try {
@@ -375,27 +399,30 @@
     el.classList.add('active');
     if (group === 'tipo') {
       tipoEnvio = el.textContent.trim();
-      const campoCosto   = document.getElementById('campo-costo-envio');
-      const fijoBox      = document.getElementById('costo-envio-fijo');
-      const inputWrap    = document.getElementById('costo-envio-input-wrap');
-      const inputPaq     = document.getElementById('costo-paqueteria');
+      const campoCosto = document.getElementById('campo-costo-envio');
+      const fijoBox    = document.getElementById('costo-envio-fijo');
+      const inputWrap  = document.getElementById('costo-envio-input-wrap');
+      const inputPaq   = document.getElementById('costo-paqueteria');
       if (tipoEnvio === 'Domicilio') {
         campoCosto.style.display = '';
         fijoBox.style.display    = 'flex';
         inputWrap.style.display  = 'none';
-        inputPaq.value = '';
+        if (inputPaq) inputPaq.value = '';
       } else if (tipoEnvio === 'Paquetería') {
         campoCosto.style.display = '';
         fijoBox.style.display    = 'none';
         inputWrap.style.display  = '';
       } else {
         campoCosto.style.display = 'none';
-        inputPaq.value = '';
+        if (inputPaq) inputPaq.value = '';
       }
     }
     if (group === 'prio') {
       prioridad = el.textContent.trim();
       document.getElementById('tag-urgente').style.display = prioridad === 'Urgente' ? 'inline' : 'none';
+    }
+    if (group === 'clienteNuevo') {
+      clienteNuevo = el.textContent.trim();
     }
     actualizarPreview();
   }
@@ -477,7 +504,10 @@
     msg += `📋 *Folio:* ${folio || '—'}`;
     if (prioridad && prioridad !== 'Normal') msg += `   ⚡ *${prioridad.toUpperCase()}*`;
     msg += `\n`;
-    msg += `📦 *Tipo:* ${tipoEnvio || '—'}\n`;
+    const vendedor = document.getElementById('vendedor') ? document.getElementById('vendedor').value : '';
+    msg += `📦 *Tipo:* ${tipoEnvio || '—'}`;
+    if (tipoEnvio === 'Sucursal' && vendedor) msg += ` — Venta por: *${vendedor}*`;
+    msg += `\n`;
     if (hora) msg += `⏰ *Hora estimada:* ${formatHora(hora)}\n`;
 
     msg += `\n👤 *CLIENTE*\n`;
@@ -672,8 +702,13 @@
     });
     document.getElementById('productos-list').innerHTML = '';
     sucursal = ''; tipoEnvio = ''; prioridad = 'Normal';
+    const vendedorEl = document.getElementById('vendedor'); if (vendedorEl) vendedorEl.value = '';
+    clienteNuevo = '';
     document.querySelectorAll('.badge').forEach(b => b.classList.remove('active'));
-    document.querySelector('.badge').classList.add('active');
+    // Re-activar "Normal" para prioridad (sin activar clienteNuevo)
+    Array.from(document.querySelectorAll('.badge'))
+      .find(b => b.textContent.trim() === 'Normal' && b.getAttribute('onclick').includes('prio'))
+      ?.classList.add('active');
     document.getElementById('campo-costo-envio').style.display = 'none';
     document.getElementById('costo-envio-fijo').style.display = 'flex';
     document.getElementById('costo-envio-input-wrap').style.display = 'none';
