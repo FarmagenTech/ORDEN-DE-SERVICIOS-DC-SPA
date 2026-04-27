@@ -348,7 +348,8 @@
       montoFinal: (() => {
         const m = parseFloat(val('monto'));
         if (isNaN(m) || !m) return '—';
-        const total = tipoEnvio === 'Domicilio' ? m + COSTO_ENVIO : m;
+        const costoEnvio = getCostoEnvio();
+        const total = m + costoEnvio;
         return `$${total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`;
       })(),
       notas:     val('notas') || '—',
